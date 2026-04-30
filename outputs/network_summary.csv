@@ -1,0 +1,6 @@
+metric,value
+dates_used,258.0
+banks_original,220.0
+banks_after_cleaning,220.0
+threshold_used,0.4
+largest_eigenvalue,116.64687269298149
