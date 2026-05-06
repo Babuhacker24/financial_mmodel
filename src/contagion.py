@@ -60,6 +60,7 @@ def simulate_cascade(
     seeds: Iterable[int],
     tau: float,
     max_steps: int | None = None,
+    macro_pressure=None,
 ) -> CascadeResult:
     """
     Run the weighted linear-threshold cascade until a fixed point is reached.
@@ -92,6 +93,12 @@ def simulate_cascade(
     N = W.shape[0]
     if max_steps is None:
         max_steps = N
+    if macro_pressure is None:
+        macro_pressure = np.zeros(N, dtype=float)
+    else:
+        macro_pressure = np.asarray(macro_pressure, dtype=float)
+        if macro_pressure.shape != (N,):
+            raise ValueError("macro_pressure must be a vector of length N.")
 
     # Pre-compute node strengths (denominator of L_i).
     strength = W.sum(axis=1)
@@ -113,9 +120,13 @@ def simulate_cascade(
     new_failures_per_step: list[int] = []
 
     for _ in range(max_steps):
-        # Weighted fraction of failed neighbours for every node.
-        load = (W @ s.astype(np.float64)) / safe_strength
-        # Healthy nodes whose load crosses the threshold this step.
+        # Network pressure: weighted fraction of failed neighbours for every node.
+        network_load = (W @ s.astype(np.float64)) / safe_strength
+
+        # Total pressure = network pressure + macro pressure.
+        load = network_load + macro_pressure
+
+        # Healthy nodes whose total load crosses the threshold this step.
         new_fail = (~s) & (load >= tau)
         n_new = int(new_fail.sum())
         if n_new == 0:
